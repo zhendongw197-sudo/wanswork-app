@@ -1,0 +1,46 @@
+name: build-exe
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: python -m pip install --upgrade pip openpyxl python-docx pillow pyinstaller
+
+      - name: Run tests
+        run: |
+          python tests/test_worktime.py
+          python tests/test_store.py
+          python tests/test_supply.py
+          python tests/test_store_supply.py
+          python tests/test_gen_supply.py
+          python tests/test_paths.py
+          python tests/test_e2e.py
+
+      - name: Build exe
+        run: python -m PyInstaller --noconfirm --clean 营销工单助手.spec
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: 营销工单助手-exe
+          path: dist/营销工单助手.exe
+          retention-days: 30
+
+      - name: Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/营销工单助手.exe
